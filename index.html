@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUDUS AI - Entrada</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    
+    <link rel="stylesheet" href="index.css" />
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.6",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "openai": "https://esm.sh/openai@^4.54.0",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@4.5.136",
+    "pdfjs-dist/build/pdf.worker.mjs": "https://esm.sh/pdfjs-dist@4.5.136/build/pdf.worker.mjs",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1"
+  }
+}
+</script>
+<script>
+  // Proteção anti-DevTools aprimorada
+  (function() {
+    // Função para detectar dispositivos móveis e tablets de forma mais confiável.
+    // O objetivo é desativar as proteções nesses dispositivos para evitar falsos positivos,
+    // como o bloqueio indevido em iPhones ou iPads quando a barra de endereço/navegação
+    // do navegador é exibida ou ocultada.
+    function isMobileOrTablet() {
+      const userAgent = navigator.userAgent;
+
+      // 1. Verificação padrão via User Agent para a maioria dos celulares.
+      if (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return true;
+      }
+
+      // 2. Detecção específica para iPads (com iPadOS 13+) que se identificam como um desktop Mac.
+      // Esses dispositivos reportam `navigator.platform` como 'MacIntel', mas possuem
+      // capacidade de toque (`maxTouchPoints > 1`), o que os diferencia de um Mac real.
+      if (/iPad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // Se for um dispositivo móvel ou tablet, o script de proteção é interrompido.
+    if (isMobileOrTablet()) {
+      return;
+    }
+
+    // As proteções abaixo serão executadas APENAS em DESKTOPS.
+
+    // Bloqueio de teclas de atalho comuns para abrir DevTools
+    document.addEventListener('keydown', function(e) {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'j') ||
+        (e.ctrlKey && e.key.toLowerCase() === 'u') ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c')
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // Impede o clique com o botão direito do mouse (menu de contexto)
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    // Verifica periodicamente se as DevTools foram abertas medindo o tamanho da janela
+    const devToolsCheckInterval = setInterval(function() {
+      if (window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200) {
+        // Se a diferença de tamanho for suspeita, bloqueia o acesso
+        document.body.innerHTML = `<div style="background-color: var(--darker, #05070c); color: var(--text-primary, white); width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: var(--font-display, monospace);">
+                                          <h1 style="text-align:center;">Acesso Bloqueado ❌</h1>
+                                        </div>`;
+        // Interrompe a verificação para economizar recursos
+        clearInterval(devToolsCheckInterval);
+      }
+    }, 1000);
+  })();
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
