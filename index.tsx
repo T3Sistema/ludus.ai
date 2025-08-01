@@ -612,15 +612,30 @@ const QuizChatAssistant: FC<QuizChatAssistantProps> = ({ isOpen, onClose, planJs
         setIsThinking(true);
 
         try {
-            const key = apiKey || OPENAI_API_KEY;
-            const model = openAiModel || localStorage.getItem('ludusAdminOpenAiModel') || 'gpt-4o-mini';
+            let key: string;
 
-            if (!key || key === "COLE_SUA_CHAVE_API_AQUI") {
-                addNotification("Chave de API não configurada para o chat.", 'error');
-                throw new Error("API Key not configured for chat.");
+            // For admin preview, use the provided apiKey. For students, fetch it.
+            if (apiKey) {
+                key = apiKey;
+            } else {
+                const keyResponse = await fetch('https://webhook.triad3.io/webhook/buscarchave');
+                if (!keyResponse.ok) {
+                    throw new Error('Não foi possível obter a chave de API para o chat. Tente novamente.');
+                }
+                const keyData = await keyResponse.json();
+                if (!keyData || !keyData.resposta) {
+                    throw new Error('Resposta do servidor de chaves é inválida.');
+                }
+                key = keyData.resposta.trim();
+            }
+            
+            if (!key || key.length < 20) {
+                addNotification("A chave de API para o chat é inválida.", 'error');
+                throw new Error("Invalid API Key for chat.");
             }
             
             const openai = new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true });
+            const model = openAiModel || localStorage.getItem('ludusAdminOpenAiModel') || 'gpt-4o-mini';
 
             const systemInstruction = `Você é o LUDUS, um tutor de IA amigável e prestativo. Sua única função é ajudar o usuário a entender o material de um quiz. Use o plano do quiz e o resumo fornecidos como seu único contexto para responder às perguntas do usuário. Seja claro, objetivo e didático.
             ---
