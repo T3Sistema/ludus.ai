@@ -9,6 +9,19 @@ import html2canvas from 'html2canvas';
 // Configuração do worker para pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@4.5.136/build/pdf.worker.mjs';
 
+// ===================================================================================
+// ===================================================================================
+//  ATENÇÃO: Insira sua chave de API da OpenAI aqui
+//
+//  Substitua o texto "COLE_SUA_CHAVE_API_AQUI" pela sua chave de API da OpenAI.
+//  Exemplo: const OPENAI_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+//
+//  Lembre-se: Expor sua chave de API no código do frontend é um GRANDE RISCO DE
+//  SEGURANÇA. Qualquer pessoa que acessar o site poderá ver e usar sua chave.
+// ===================================================================================
+// ===================================================================================
+const OPENAI_API_KEY = "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";
+
 
 // --- Ícones SVG ---
 const EyeIcon: FC<{ className?: string }> = ({ className }) => (
@@ -574,11 +587,11 @@ interface QuizChatAssistantProps {
     summaryText: string;
     messages: ChatMessage[];
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-    apiKey?: string;
     openAiModel?: string;
+    apiKey?: string;
 }
 
-const QuizChatAssistant: FC<QuizChatAssistantProps> = ({ isOpen, onClose, planJson, summaryText, messages, setMessages, apiKey, openAiModel }) => {
+const QuizChatAssistant: FC<QuizChatAssistantProps> = ({ isOpen, onClose, planJson, summaryText, messages, setMessages, openAiModel, apiKey }) => {
     const [input, setInput] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -590,16 +603,6 @@ const QuizChatAssistant: FC<QuizChatAssistantProps> = ({ isOpen, onClose, planJs
         }
     }, [messages]);
 
-    const getOpenAiConfig = () => {
-        const key = apiKey || localStorage.getItem('ludusAdminOpenAiApiKey');
-        const model = openAiModel || localStorage.getItem('ludusAdminOpenAiModel') || 'gpt-4o-mini';
-        if (!key) {
-            addNotification("Chave de API não configurada para o chat.", 'error');
-            throw new Error("API Key not found for chat.");
-        }
-        return { apiKey: key, model };
-    };
-
     const handleSend = async () => {
         if (!input.trim() || isThinking) return;
 
@@ -609,7 +612,14 @@ const QuizChatAssistant: FC<QuizChatAssistantProps> = ({ isOpen, onClose, planJs
         setIsThinking(true);
 
         try {
-            const { apiKey: key, model } = getOpenAiConfig();
+            const key = apiKey || OPENAI_API_KEY;
+            const model = openAiModel || localStorage.getItem('ludusAdminOpenAiModel') || 'gpt-4o-mini';
+
+            if (!key || key === "COLE_SUA_CHAVE_API_AQUI") {
+                addNotification("Chave de API não configurada para o chat.", 'error');
+                throw new Error("API Key not configured for chat.");
+            }
+            
             const openai = new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true });
 
             const systemInstruction = `Você é o LUDUS, um tutor de IA amigável e prestativo. Sua única função é ajudar o usuário a entender o material de um quiz. Use o plano do quiz e o resumo fornecidos como seu único contexto para responder às perguntas do usuário. Seja claro, objetivo e didático.
@@ -728,12 +738,12 @@ interface InteractiveQuizProps {
     quizTitle: string;
     studentData: StudentData | null;
     onExit?: () => void;
-    apiKey?: string;
     openAiModel?: string;
     onQuizComplete?: (quizId: number) => void;
+    apiKey?: string;
 }
 
-const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quizId, quizTitle, studentData, onExit, apiKey, openAiModel, onQuizComplete }) => {
+const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quizId, quizTitle, studentData, onExit, openAiModel, onQuizComplete, apiKey }) => {
     const [plan, setPlan] = useState<QuizPlan | null>(null);
     const [answers, setAnswers] = useState<{ [key: number]: number }>({});
     const [result, setResult] = useState<QuizResult | null>(null);
@@ -758,16 +768,6 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
             resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
     }, [result]);
-    
-    const getOpenAiConfig = () => {
-        const key = apiKey || localStorage.getItem('ludusAdminOpenAiApiKey');
-        const model = openAiModel || localStorage.getItem('ludusAdminOpenAiModel') || 'gpt-4o-mini';
-        if (!key) {
-            addNotification("Chave de API não configurada.", 'error');
-            throw new Error("API Key not found.");
-        }
-        return { apiKey: key, model };
-    };
 
     const handleAnswerChange = (questionIndex: number, optionIndex: number) => {
         setAnswers(prev => ({ ...prev, [questionIndex]: optionIndex }));
@@ -777,7 +777,15 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
         if (!plan) return;
         setIsEvaluating(true);
         try {
-            const { apiKey: key, model } = getOpenAiConfig();
+            const key = apiKey || OPENAI_API_KEY;
+            const model = openAiModel || 'gpt-4o-mini';
+            
+            if (!key || key === "COLE_SUA_CHAVE_API_AQUI") {
+                addNotification("Não foi possível avaliar. A chave de API não foi configurada.", 'error');
+                setIsEvaluating(false);
+                return;
+            }
+
             const openai = new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true });
             
             const prompt = `Com base neste plano de quiz JSON e nas respostas do usuário, calcule a pontuação e gere um feedback personalizado. O plano é: ${planJson}. As respostas do usuário são: ${JSON.stringify(answers)}. Responda APENAS com um objeto JSON com o seguinte formato: { "score": number (0-100), "feedback": string, "correctAnswers": number, "totalQuestions": number }.`;
@@ -885,8 +893,8 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
                         summaryText={summaryText}
                         messages={chatMessages}
                         setMessages={setChatMessages}
-                        apiKey={apiKey}
                         openAiModel={openAiModel}
+                        apiKey={apiKey}
                     />
                 )}
             </AnimatePresence>
@@ -1054,11 +1062,11 @@ interface QuizPreviewModalProps {
     pendingQuizData: PendingQuizData;
     onApprove: () => void;
     onReject: () => void;
-    apiKey: string;
     openAiModel: string;
+    apiKey: string;
 }
 
-const QuizPreviewModal: FC<QuizPreviewModalProps> = ({ pendingQuizData, onApprove, onReject, apiKey, openAiModel }) => {
+const QuizPreviewModal: FC<QuizPreviewModalProps> = ({ pendingQuizData, onApprove, onReject, openAiModel, apiKey }) => {
     return (
         <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
@@ -1083,8 +1091,8 @@ const QuizPreviewModal: FC<QuizPreviewModalProps> = ({ pendingQuizData, onApprov
                         quizId={0} // Not relevant for admin preview
                         quizTitle={pendingQuizData.theme}
                         studentData={null} // No student data in admin preview
-                        apiKey={apiKey}
                         openAiModel={openAiModel}
+                        apiKey={apiKey}
                     />
                 </div>
                 <footer className="p-4 flex justify-end space-x-4 border-t border-gray-700">
@@ -1507,11 +1515,9 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
     const [activeTab, setActiveTab] = useState('Quizzes');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [apiKey, setApiKey] = useState('');
-    const [isApiKeySaved, setIsApiKeySaved] = useState(false);
-    const [showApiKey, setShowApiKey] = useState(false);
     const [quizTheme, setQuizTheme] = useState('');
     const [quizDifficulty, setQuizDifficulty] = useState<Difficulty>('Médio');
+    const [adminApiKey, setAdminApiKey] = useState('');
     const [openAiModel, setOpenAiModel] = useState('gpt-4o-mini');
     const [sourceType, setSourceType] = useState<'pdf' | 'youtube'>('pdf');
     const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -1527,9 +1533,7 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
     const [quizToToggle, setQuizToToggle] = useState<Quiz | null>(null);
     const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
     const [quizToEdit, setQuizToEdit] = useState<Quiz | null>(null);
-    const [showDeleteKeyConfirm, setShowDeleteKeyConfirm] = useState(false);
-
-
+    
     const [isDeletingQuiz, setIsDeletingQuiz] = useState(false);
     const { addNotification } = useNotification();
 
@@ -1571,16 +1575,31 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
         if (activeTab === 'Quizzes') {
             fetchQuizzes();
         }
-        const savedKey = localStorage.getItem('ludusAdminOpenAiApiKey');
-        const savedModel = localStorage.getItem('ludusAdminOpenAiModel');
+        const savedKey = localStorage.getItem('ludusAdminOpenAiKey');
         if (savedKey) {
-            setApiKey(savedKey);
-            setIsApiKeySaved(true);
+            setAdminApiKey(savedKey);
         }
+        const savedModel = localStorage.getItem('ludusAdminOpenAiModel');
         if (savedModel) {
             setOpenAiModel(savedModel);
         }
     }, [activeTab]);
+
+    const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setAdminApiKey(e.target.value);
+    };
+
+    const handleSaveApiKey = () => {
+        localStorage.setItem('ludusAdminOpenAiKey', adminApiKey);
+        addNotification('Chave de API da OpenAI salva com sucesso!', 'success');
+    };
+
+    const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newModel = e.target.value;
+        setOpenAiModel(newModel);
+        localStorage.setItem('ludusAdminOpenAiModel', newModel);
+        addNotification(`Modelo OpenAI padrão definido como: ${newModel}`, 'info');
+    };
 
     const navItems = ['Quizzes', 'Ranking'];
 
@@ -1726,27 +1745,6 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
         }
     };
 
-    const handleSaveApiKey = () => {
-        if (apiKey.trim()) {
-            localStorage.setItem('ludusAdminOpenAiApiKey', apiKey);
-            localStorage.setItem('ludusAdminOpenAiModel', openAiModel);
-            setIsApiKeySaved(true);
-            addNotification('Chave de API e modelo salvos com sucesso!', 'success');
-        } else {
-            addNotification('Por favor, insira uma chave de API válida.', 'error');
-        }
-    };
-
-    const handleConfirmDeleteApiKey = () => {
-        localStorage.removeItem('ludusAdminOpenAiApiKey');
-        localStorage.removeItem('ludusAdminOpenAiModel');
-        setApiKey('');
-        setIsApiKeySaved(false);
-        setShowDeleteKeyConfirm(false);
-        addNotification('Chave de API removida com sucesso.', 'info');
-    };
-
-
     const resetForm = () => {
         setQuizTheme('');
         setQuizDifficulty('Médio');
@@ -1759,15 +1757,22 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
 
     const handleCreateQuiz = async () => {
         setCreationError(null);
+        const keyToUse = adminApiKey || OPENAI_API_KEY;
+
+        if (keyToUse === "COLE_SUA_CHAVE_API_AQUI" || !keyToUse.trim()) {
+            setCreationError("Erro: A chave de API da OpenAI precisa ser configurada no painel ou no código-fonte.");
+            return;
+        }
+
         const youtubeUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
-        if (!apiKey.trim() || !quizTheme.trim() || (sourceType === 'pdf' && !pdfFile) || (sourceType === 'youtube' && !youtubeUrlPattern.test(youtubeUrl))) {
-            setCreationError('Por favor, preencha o tema, a chave de API e forneça uma fonte de conteúdo válida (PDF ou link do YouTube).');
+        if (!quizTheme.trim() || (sourceType === 'pdf' && !pdfFile) || (sourceType === 'youtube' && !youtubeUrlPattern.test(youtubeUrl))) {
+            setCreationError('Por favor, preencha o tema e forneça uma fonte de conteúdo válida (PDF ou link do YouTube).');
             return;
         }
         setIsCreatingQuiz(true);
     
         try {
-            const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+            const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true });
             let planPromise: Promise<OpenAI.Chat.Completions.ChatCompletion>;
             let summaryPromise: Promise<OpenAI.Chat.Completions.ChatCompletion>;
             let sourceForSaving: { youtubeUrl?: string; };
@@ -1916,7 +1921,7 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
     };
     
     const youtubeUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
-    const isFormValid = apiKey.trim() !== '' && quizTheme.trim() !== '' && (sourceType === 'pdf' ? !!pdfFile : youtubeUrlPattern.test(youtubeUrl));
+    const isFormValid = quizTheme.trim() !== '' && (sourceType === 'pdf' ? !!pdfFile : youtubeUrlPattern.test(youtubeUrl));
 
     return (
         <motion.div
@@ -1931,8 +1936,8 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
                         pendingQuizData={pendingQuizData}
                         onApprove={handleApproveQuiz}
                         onReject={handleRejectQuiz}
-                        apiKey={apiKey}
                         openAiModel={openAiModel}
+                        apiKey={adminApiKey}
                     />
                 )}
                  {quizToEdit && (
@@ -1969,18 +1974,6 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
                         <p className="mt-4 text-xs text-red-400">Esta ação não pode ser desfeita.</p>
                     </ConfirmationModal>
                 )}
-                {showDeleteKeyConfirm && (
-                    <ConfirmationModal
-                        isOpen={showDeleteKeyConfirm}
-                        onClose={() => setShowDeleteKeyConfirm(false)}
-                        onConfirm={handleConfirmDeleteApiKey}
-                        title="Confirmar Exclusão da Chave API"
-                        isConfirming={false}
-                    >
-                        <p>Você tem certeza que deseja <strong>excluir permanentemente</strong> a sua chave de API salva?</p>
-                        <p className="mt-4 text-xs text-red-400">Você precisará inseri-la novamente para criar quizzes.</p>
-                    </ConfirmationModal>
-                )}
             </AnimatePresence>
 
             <header className="flex justify-between items-center pb-4 border-b border-gray-800">
@@ -2014,7 +2007,7 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
                         <p className="text-sm text-gray-400 mb-6">Crie um quiz interativo a partir de um PDF ou um link do YouTube.</p>
 
                         <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                 <div className="md:col-span-1">
                                     <label htmlFor="quiz-theme" className="block text-sm font-medium text-gray-400 mb-2">Tema do Quiz</label>
                                     <input id="quiz-theme" type="text" placeholder="Ex: Protocolos de Segurança" value={quizTheme} onChange={(e) => setQuizTheme(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200"/>
@@ -2033,51 +2026,38 @@ const AdminDashboard: FC<{ adminName: string; onLogout: () => void }> = ({ admin
                                         </div>
                                     </div>
                                 </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="admin-api-key" className="block text-sm font-medium text-gray-400 mb-2">Chave API OpenAI</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            id="admin-api-key"
+                                            type="password"
+                                            placeholder="Cole sua chave aqui (ex: sk-...)"
+                                            value={adminApiKey}
+                                            onChange={handleApiKeyChange}
+                                            className="flex-1 w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200"
+                                        />
+                                        <button
+                                            onClick={handleSaveApiKey}
+                                            className="bg-gray-700 text-gray-200 px-4 py-2.5 rounded-lg hover:bg-cyan-500/20 hover:text-cyan-300 transition-colors text-sm font-medium"
+                                        >
+                                            Salvar
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">A chave salva aqui será usada para gerar e pré-visualizar quizzes. Se vazia, usará a chave do sistema.</p>
+                                </div>
 
-                                <div className="md:col-span-1">
-                                    <label htmlFor="openai-model" className="block text-sm font-medium text-gray-400 mb-2">Modelo OpenAI</label>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="openai-model" className="block text-sm font-medium text-gray-400 mb-2">Modelo OpenAI Padrão</label>
                                     <div className="relative">
-                                        <select id="openai-model" value={openAiModel} onChange={(e) => setOpenAiModel(e.target.value)} className="appearance-none w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 pr-8">
+                                        <select id="openai-model" value={openAiModel} onChange={handleModelChange} className="appearance-none w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 pr-8">
                                             {openAiModels.map(model => <option key={model} value={model}>{model}</option>)}
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                                             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="md:col-span-3">
-                                    <label htmlFor="api-key" className="block text-sm font-medium text-gray-400 mb-2">Chave API OpenAI</label>
-                                    <div className="flex items-center gap-2">
-                                        <div className="relative flex-grow">
-                                            <input
-                                                id="api-key"
-                                                type={showApiKey ? 'text' : 'password'}
-                                                placeholder={isApiKeySaved ? "Chave de API salva e protegida" : "Cole sua chave de API OpenAI aqui"}
-                                                value={apiKey}
-                                                onChange={(e) => { setApiKey(e.target.value); setIsApiKeySaved(false); }}
-                                                disabled={isApiKeySaved}
-                                                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
-                                            />
-                                            <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-cyan-400">
-                                                {showApiKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                                            </button>
-                                        </div>
-                                        {isApiKeySaved ? (
-                                            <>
-                                                <button onClick={() => { setIsApiKeySaved(false); addNotification('Modo de edição ativado.', 'info'); }} className="p-2.5 bg-gray-700 text-gray-200 rounded-lg hover:bg-yellow-500/20 hover:text-yellow-300 transition-colors" aria-label="Editar Chave">
-                                                    <PencilIcon className="h-5 w-5" />
-                                                </button>
-                                                <button onClick={() => setShowDeleteKeyConfirm(true)} className="p-2.5 bg-gray-700 text-gray-200 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-colors" aria-label="Excluir Chave">
-                                                    <TrashIcon className="h-5 w-5" />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button onClick={handleSaveApiKey} disabled={!apiKey.trim()} className="px-4 py-2.5 bg-cyan-400 text-black font-semibold rounded-lg hover:bg-cyan-500 transition-colors text-sm whitespace-nowrap disabled:bg-gray-600 disabled:cursor-not-allowed">
-                                                Salvar
-                                            </button>
-                                        )}
-                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Este modelo será usado para fontes de conteúdo que não sejam PDF.</p>
                                  </div>
                             </div>
 
