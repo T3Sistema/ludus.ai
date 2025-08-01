@@ -20,7 +20,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@4.5.136/buil
 //  SEGURANÇA. Qualquer pessoa que acessar o site poderá ver e usar sua chave.
 // ===================================================================================
 // ===================================================================================
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = "";
 
 
 // --- Ícones SVG ---
@@ -777,11 +777,27 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
         if (!plan) return;
         setIsEvaluating(true);
         try {
-            const key = apiKey || OPENAI_API_KEY;
             const model = openAiModel || 'gpt-4o-mini';
+            let key: string;
+
+            // When a student submits (apiKey prop is not passed), fetch the key.
+            // For admin preview, the apiKey prop is provided and used directly.
+            if (apiKey) {
+                key = apiKey;
+            } else {
+                const keyResponse = await fetch('https://webhook.triad3.io/webhook/buscarchave');
+                if (!keyResponse.ok) {
+                    throw new Error('Não foi possível obter a chave de API para avaliação. Tente novamente.');
+                }
+                const keyData = await keyResponse.json();
+                if (!keyData || !keyData.resposta) {
+                    throw new Error('Resposta do servidor de chaves é inválida ou não contém a chave.');
+                }
+                key = keyData.resposta.trim();
+            }
             
-            if (!key || key === "COLE_SUA_CHAVE_API_AQUI") {
-                addNotification("Não foi possível avaliar. A chave de API não foi configurada.", 'error');
+            if (!key || key.length < 20) { // Basic validation for an API key format
+                addNotification("A chave de API recebida é inválida. A avaliação foi cancelada.", 'error');
                 setIsEvaluating(false);
                 return;
             }
@@ -797,7 +813,7 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
             });
             
             const resultText = response.choices[0].message.content;
-            if (!resultText) throw new Error("A API não retornou um resultado.");
+            if (!resultText) throw new Error("A API não retornou um resultado de avaliação.");
 
             const resultJson = JSON.parse(resultText);
             setResult(resultJson);
@@ -834,9 +850,10 @@ const InteractiveQuiz: FC<InteractiveQuizProps> = ({ planJson, summaryText, quiz
                 }
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao avaliar o quiz:", error);
-            addNotification("Não foi possível avaliar o quiz. Verifique a chave de API e tente novamente.", 'error');
+            const errorMessage = error.message || "Não foi possível avaliar o quiz. Verifique a chave de API e tente novamente.";
+            addNotification(errorMessage, 'error');
         } finally {
             setIsEvaluating(false);
         }
